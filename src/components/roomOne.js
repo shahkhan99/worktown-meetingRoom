@@ -87,7 +87,7 @@ export default class RoomOne extends Component {
   render() {
     let {meetingDate, meetingSlot} = this.state;
     console.log(meetingSlot[0]);
-    let obj = JSON.parse(JSON.stringify(meetingSlot[0]));
+    let obj = JSON.stringify(meetingSlot[0]);
     console.log(obj);
     return (
       <View style={styles.container}>
