@@ -10,10 +10,6 @@ export const getRoomOneMeetings = callback => {
       .ref('allMeetings/')
       .orderByKey()
       .on('value', snapShot => {
-        // resolve(snapShot.val());
-        console.log('====================================');
-        console.log(snapShot.val());
-        console.log('====================================');
         callback(snapShot.val());
       });
   });

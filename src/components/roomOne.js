@@ -26,11 +26,13 @@ export default class RoomOne extends Component {
     meetingSlot: [],
     meetingDate: [],
     currentMeeting: [],
+    timer: 0,
+    run: false,
   };
   fetchMeetings = () => {
-    let date = [];
-    let meetingData = [];
     getRoomOneMeetings(data => {
+      let date = [];
+      let meetingData = [];
       this.setState({meetingSlot: []});
 
       Object.keys(data).forEach(d => {
@@ -41,15 +43,12 @@ export default class RoomOne extends Component {
           date.push(d);
           Object.keys(data[d]).forEach(keys => {
             let items = data[d][keys];
-            console.log(
-              new Date(
-                Moment(new Date()).format('YYYY/MM/DD') + ' ' + items.endTime,
-              ).getTime() > new Date().getTime(),
-            );
+
             if (
               new Date(
                 Moment(new Date()).format('YYYY/MM/DD') + ' ' + items.endTime,
-              ).getTime() > new Date().getTime()
+              ).getTime() > new Date().getTime() &&
+              items.roomNumber == 1
             ) {
               meetingData.push(items);
             }
@@ -66,7 +65,10 @@ export default class RoomOne extends Component {
               meetingSlot: meetingData,
               meetingDate: date,
             },
-            () => this.setTimerArray(),
+            () => {
+              this.startTimer();
+              this.timerFunc();
+            },
           );
         }
       });
@@ -77,68 +79,133 @@ export default class RoomOne extends Component {
     this.fetchMeetings();
   }
 
-  setTimerArray = () => {
+  timerFunc = () => {
     const {meetingSlot} = this.state;
-    meetingSlot.forEach(meet => {
-      // console.log(new Date('1970/01/01 ' + ' ' + meet.startTime).getTime());
-      // console.log(new Date('1970/01/01 ' + meet.startTime), 'ass');
-    });
+    if (meetingSlot.length > 0) {
+      let time = meetingSlot[0];
+      let currentTime = 60000;
+      let curTime = new Date().getTime() + currentTime;
+      let sTime = new Date(
+        Moment(new Date()).format('YYYY/MM/DD') + ' ' + time.startTime,
+      ).getTime();
+      console.log(curTime, sTime, 'sss');
+      if (curTime > sTime) {
+        this.setState({run: true}, () => console.log(this.state.run));
+      } else {
+        this.setState({run: false});
+      }
+    } else {
+      this.setState({run: false});
+    }
+  };
+  startTimer = () => {
+    const {meetingSlot} = this.state;
+    if (meetingSlot.length > 0) {
+      setInterval(() => {
+        this.timerFunc();
+      }, 60000);
+    } else {
+      console.log('okkk');
+    }
   };
   render() {
-    let {meetingDate, meetingSlot} = this.state;
-    console.log(meetingSlot[0]);
-    let obj = JSON.stringify(meetingSlot[0]);
-    console.log(obj);
+    let {meetingDate, meetingSlot, timer} = this.state;
+
+    let t = 0;
+    if (meetingSlot.length > 0) {
+      t =
+        (new Date(
+          Moment(new Date()).format('MM/DD/YYYY') +
+            ' ' +
+            meetingSlot[0].endTime,
+        ).getTime() -
+          new Date().getTime()) /
+        1000;
+    }
     return (
       <View style={styles.container}>
-        <View style={styles.roomHead}>
-          <Text>Room 1</Text>
-        </View>
-
-        <View style={styles.timerBlock}>
-          <Text
-            style={{
-              fontSize: 20,
-              color: '#fff',
-              fontWeight: '600',
-              marginBottom: 10,
-              textDecorationLine: 'underline',
-            }}>
-            Current Meeting
-          </Text>
-          <View style={styles.innerBlock}>
-            <View>
-              <Text style={{fontSize: 20, color: '#fff', fontWeight: '500'}}>
-                {}
-              </Text>
-              <Text style={{color: '#fff'}}>12:30pm to 12:45pm</Text>
-            </View>
-            <View>
-              <Text style={{color: '#fff', fontWeight: 'bold'}}>
-                Time Remaining:
-              </Text>
-              <CountDown
-                size={20}
-                until={1000}
-                onFinish={() => alert('Finished')}
-                digitStyle={{
-                  backgroundColor: 'transparent',
-                  borderWidth: 2,
-                  borderColor: '#fff',
-                }}
-                digitTxtStyle={{color: '#fff'}}
-                timeLabelStyle={{color: 'red', fontWeight: 'bold'}}
-                separatorStyle={{color: '#fff'}}
-                timeToShow={['H', 'M', 'S']}
-                timeLabels={{m: null, s: null}}
-                showSeparator
-              />
-            </View>
+        <View style={{width: '30%', height: 50, alignItems: 'center'}}>
+          <View style={styles.roomHead}>
+            <Text style={{fontSize: 18, fontWeight: '600'}}>Room 1</Text>
           </View>
         </View>
+        <View style={{alignItems: 'center', width: '30%', height: 120}}>
+          {[meetingSlot[0]].map((items, i) => {
+            return (
+              <View style={styles.timerBlock}>
+                <Text
+                  style={{
+                    fontSize: 14,
+                    color: '#fff',
+                    fontWeight: '600',
+                    marginBottom: 10,
+                    textDecorationLine: 'underline',
+                  }}>
+                  Current Meeting
+                </Text>
+                <View style={styles.innerBlock}>
+                  <View>
+                    <Text
+                      style={{
+                        fontSize: 14,
+                        color: '#fff',
+                        fontWeight: '500',
+                      }}>
+                      {meetingSlot.length > 0
+                        ? items.userCompany
+                        : 'No Current Meeting'}
+                    </Text>
+                    <Text style={{color: '#fff', fontSize: 12}}>
+                      {meetingSlot.length > 0 && items.startTime} - {''}
+                      {meetingSlot.length > 0 && items.endTime}
+                    </Text>
+                  </View>
+                  <View>
+                    <Text
+                      style={{color: '#fff', fontWeight: 'bold', fontSize: 12}}>
+                      Time Remaining:
+                    </Text>
+
+                    {this.state.run ? (
+                      <CountDown
+                        size={15}
+                        until={meetingSlot.length > 0 && t > 0 ? t : +0}
+                        running={this.state.run}
+                        onFinish={() => {
+                          this.fetchMeetings();
+                          this.setState({run: false});
+                        }}
+                        digitStyle={{
+                          backgroundColor: 'transparent',
+                          borderWidth: 2,
+                          borderColor: '#fff',
+                        }}
+                        digitTxtStyle={{color: '#fff'}}
+                        timeLabelStyle={{color: 'red', fontWeight: 'bold'}}
+                        separatorStyle={{color: '#fff'}}
+                        timeToShow={['H', 'M', 'S']}
+                        timeLabels={{m: null, s: null}}
+                        showSeparator
+                      />
+                    ) : (
+                      <Text
+                        style={{
+                          fontWeight: '600',
+                          fontSize: 26,
+                          color: 'white',
+                        }}>
+                        -- : -- : --
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              </View>
+            );
+          })}
+        </View>
         <View
-          style={{height: Dimensions.get('window').height / 2, width: '50%'}}>
-          {meetingDate.length == 0 ? (
+          style={{height: Dimensions.get('window').height / 2, width: '30%'}}>
+          {meetingSlot.length == 0 ? (
             <View
               style={{
                 marginTop: 10,
@@ -175,13 +242,12 @@ export default class RoomOne extends Component {
                             </Text>
                             <View style={styles.roomTime}>
                               <View>
-                                <Text>Meeting Room {item.roomNumber}</Text>
-                              </View>
-
-                              <View style={styles.timeView}>
-                                <Text>{item.startTime}</Text>
-                                <Text> - </Text>
-                                <Text>{item.endTime}</Text>
+                                <Text>Room {item.roomNumber} </Text>
+                                <View style={styles.timeView}>
+                                  <Text>{item.startTime}</Text>
+                                  <Text> - </Text>
+                                  <Text>{item.endTime}</Text>
+                                </View>
                               </View>
                             </View>
                           </View>
@@ -205,8 +271,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   timerBlock: {
-    height: 120,
-    width: '50%',
+    height: 100,
+    width: '90%',
     backgroundColor: '#5f1569',
     alignItems: 'center',
     justifyContent: 'flex-start',
@@ -311,7 +377,7 @@ const styles = StyleSheet.create({
   },
 
   roomHead: {
-    width: '50%',
+    width: '95%',
     height: 50,
     alignItems: 'center',
     justifyContent: 'center',
